@@ -66,26 +66,20 @@ $base_path = "http://" . $_SERVER['HTTP_HOST'] . "/lksa_nh/";
         </div>
 
         <div class="form-section">
-            <h2>Dapatkan Koordinat GPS</h2>
+            <h2><i class="fas fa-map-marked-alt"></i> Link Google Maps (URL)</h2>
+            <p>Masukkan link Google Maps untuk referensi lokasi.</p>
+            
             <div class="form-group">
-                <p>Klik tombol di bawah ini untuk mengambil Latitude dan Longitude otomatis dari perangkat Anda.</p>
-                
-                <button type="button" id="getLocationButton" class="btn btn-primary" style="background-color: #F97316; margin-bottom: 15px;">
-                    <i class="fas fa-location-arrow"></i> Simpan Lokasi Sekarang
-                </button>
+                <label>Link Google Maps (URL):</label>
+                <input type="text" name="google_maps_link" id="google_maps_link" placeholder="Contoh: https://maps.app.goo.gl/...">
             </div>
             
-            <div class="form-grid">
-                <div class="form-group">
-                    <label>Latitude:</label>
-                    <input type="text" id="latitude" name="latitude" readonly required placeholder="Otomatis terisi setelah tombol diklik.">
-                </div>
-                <div class="form-group">
-                    <label>Longitude:</label>
-                    <input type="text" id="longitude" name="longitude" readonly required placeholder="Otomatis terisi setelah tombol diklik.">
-                </div>
-            </div>
+            <input type="hidden" id="latitude" name="latitude" value="">
+            <input type="hidden" id="longitude" name="longitude" value="">
+            
+           
         </div>
+
 
         <div class="form-section">
             <h2>Informasi Pemilik & Jadwal</h2>
@@ -160,44 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // ====================================================================
 
-    // --- Geolocation Logic ---
-    const getLocationButton = document.getElementById('getLocationButton');
-    const latitudeInput = document.getElementById('latitude');
-    const longitudeInput = document.getElementById('longitude');
-
-    function getLocation() {
-        // ... (Kode Geolocation) ...
-        return new Promise((resolve, reject) => {
-            if (!navigator.geolocation) {
-                reject(new Error("Browser tidak mendukung geolocation."));
-            }
-            const options = { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 };
-            navigator.geolocation.getCurrentPosition(pos => resolve(pos.coords), err => reject(err), options);
-        });
-    }
-
-    getLocationButton.addEventListener('click', async () => {
-        try {
-            Swal.fire({ title: 'Mengambil Lokasi...', text: 'Mohon tunggu sebentar. Pastikan izin lokasi diaktifkan.', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
-            const coords = await getLocation();
-            const { latitude, longitude } = coords;
-            latitudeInput.value = latitude.toFixed(8);
-            longitudeInput.value = longitude.toFixed(8);
-            Swal.fire({ icon: 'success', title: 'Lokasi Berhasil Diambil!', text: `Lat: ${latitude.toFixed(6)}, Lng: ${longitude.toFixed(6)}. Data siap disimpan.`, confirmButtonColor: '#10B981', });
-        } catch (err) {
-            Swal.close();
-            let errorMessage = 'Tidak bisa mendapatkan lokasi. Pastikan izin lokasi diaktifkan di browser Anda.';
-            if (err.code === 1) { errorMessage = 'Anda menolak izin untuk mengakses lokasi.'; } 
-            else if (err.code === 2) { errorMessage = 'Lokasi tidak tersedia atau gagal mendapatkan lokasi.'; } 
-            else if (err.code === 3) { errorMessage = 'Waktu pengambilan lokasi habis. Coba lagi.'; } 
-            else { errorMessage = `Terjadi kesalahan saat mengambil lokasi.`; }
-            Swal.fire('Error!', errorMessage, 'error');
-        }
-    });
-
-    // ====================================================================
     // === Logic Submit untuk Menggabungkan Alamat ===
-    // ====================================================================
     
     form.addEventListener('submit', (e) => {
         
@@ -214,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Menggabungkan alamat lengkap: Detail, Kelurahan, Kecamatan, Kab/Kota, Provinsi
-        const fullAddress = `${alamatDetail}, ${kelurahanNama}, ${kecamatanNama}, ${kabupatenNama}, ${provinsiNama}`;
+        const fullAddress = `${alamatDetail}, Kel. ${kelurahanNama}, Kec. ${kecamatanNama}, ${kabupatenNama}, ${provinsiNama}`;
         
         // Mengirim alamat lengkap ke hidden field yang digunakan oleh proses_kotak_amal.php
         finalAddressInput.value = fullAddress;

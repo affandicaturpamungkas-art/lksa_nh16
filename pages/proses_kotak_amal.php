@@ -50,15 +50,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email_pemilik = $_POST['email_pemilik'] ?? '';
     $jadwal_pengambilan = $_POST['jadwal_pengambilan'] ?? ''; 
     $keterangan = $_POST['keterangan'] ?? '';
-    $latitude = $_POST['latitude'] ?? null;
-    $longitude = $_POST['longitude'] ?? null;
-    $foto_path = null;
+    
+    // PERUBAHAN KRITIS: Latitude dan Longitude diset ke 0.0 karena dihapus dari form
+    $latitude = 0.0;
+    $longitude = 0.0;
+    // Link Google Maps tidak disimpan ke DB (jika tidak ada kolom)
+    $google_maps_link = $_POST['google_maps_link'] ?? '';
     
     // VARIABEL WILAYAH BARU (DIAMBIL DARI FIELD HIDDEN)
     $provinsi_name = $_POST['ID_Provinsi'] ?? ''; 
     $kabupaten_name = $_POST['ID_Kabupaten'] ?? ''; 
     $kecamatan_name = $_POST['ID_Kecamatan'] ?? ''; 
     $kelurahan_name = $_POST['ID_Kelurahan'] ?? ''; 
+    
+    $foto_path = null;
     
     // Menangani unggahan foto
     if (!empty($_FILES['foto']['name'])) {
@@ -101,8 +106,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $jadwal_pengambilan, 
         $keterangan, 
         $foto_path, 
-        $latitude, 
-        $longitude
+        $latitude, // <-- Diset 0.0
+        $longitude // <-- Diset 0.0
     );
 
     if ($stmt->execute()) {
