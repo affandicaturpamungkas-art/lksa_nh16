@@ -20,8 +20,8 @@ if (empty($id_kotak_amal)) {
 
 include '../includes/header.php';
 
-// Ambil data Kotak Amal dari database
-$sql = "SELECT * FROM KotakAmal WHERE ID_KotakAmal = ?";
+// Ambil data Kotak Amal dari database (TERMASUK KOLOM Google_Maps_Link)
+$sql = "SELECT ka.*, ka.Google_Maps_Link FROM KotakAmal ka WHERE ka.ID_KotakAmal = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("s", $id_kotak_amal);
 $stmt->execute();
@@ -63,6 +63,10 @@ $foto_path = $foto_ka ? $base_url . 'assets/img/' . $foto_ka : $base_url . 'asse
                 <div class="form-group">
                     <label>Alamat Toko:</label>
                     <textarea name="alamat_toko" rows="3" cols="50"><?php echo htmlspecialchars($data_ka['Alamat_Toko']); ?></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Link Google Maps (URL):</label>
+                    <input type="url" name="google_maps_link" value="<?php echo htmlspecialchars($data_ka['Google_Maps_Link'] ?? ''); ?>" placeholder="Contoh: https://maps.app.goo.gl/...">
                 </div>
                 <div class="form-group">
                     <label>Keterangan Tambahan:</label>

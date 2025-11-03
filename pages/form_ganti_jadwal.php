@@ -27,16 +27,28 @@ if (!$data_ka) {
     die("Data Kotak Amal tidak ditemukan.");
 }
 
-// --- LOGIKA FORMAT TANGGAL ---
+// --- LOGIKA FORMAT TANGGAL (FIXED: Mengganti strftime() yang deprecated) ---
 // Mengambil tanggal dari DB
 $jadwal_db = $data_ka['Jadwal_Pengambilan'] ?? null;
 $jadwal_saat_ini = 'Belum Diatur';
 
 if ($jadwal_db && $jadwal_db !== '0000-00-00') {
+    $timestamp = strtotime($jadwal_db);
+    $bulan_indonesia = [
+        'January' => 'Januari', 'February' => 'Februari', 'March' => 'Maret', 
+        'April' => 'April', 'May' => 'Mei', 'June' => 'Juni', 
+        'July' => 'Juli', 'August' => 'Agustus', 'September' => 'September', 
+        'October' => 'Oktober', 'November' => 'November', 'December' => 'Desember'
+    ];
+    
+    $day = date('d', $timestamp);
+    $month_en = date('F', $timestamp);
+    $year = date('Y', $timestamp);
+    
+    $month_id = $bulan_indonesia[$month_en] ?? $month_en;
+
     // Format tanggal ke d F Y (Tanggal, Nama Bulan Penuh, Tahun)
-    // Mengatur locale ke Indonesia untuk nama bulan (asumsi lingkungan server mendukung)
-    setlocale(LC_TIME, 'id_ID.utf8');
-    $jadwal_saat_ini = strftime('%d %B %Y', strtotime($jadwal_db));
+    $jadwal_saat_ini = $day . ' ' . $month_id . ' ' . $year;
 }
 // --- END LOGIKA FORMAT TANGGAL ---
 

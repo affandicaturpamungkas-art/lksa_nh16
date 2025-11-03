@@ -4,7 +4,7 @@ include '../config/database.php';
 
 // Fungsi untuk mengunggah file foto (MENGGUNAKAN LOGIKA NAMA BARU: kotak_amal_nama_toko_UNIK.ext)
 function handle_upload($file, $nama_toko) {
-    // --- PERBAIKAN: Mengganti hardcode path dengan path relatif yang dinamis ---
+    // ... (Fungsi handle_upload tidak berubah) ...
     $target_dir = __DIR__ . '/../assets/img/';
     
     $file_extension = strtolower(pathinfo($file["name"], PATHINFO_EXTENSION));
@@ -48,8 +48,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email_pemilik = $_POST['email_pemilik'] ?? '';
     $jadwal_pengambilan = $_POST['jadwal_pengambilan'] ?? ''; 
     $foto_lama = $_POST['foto_lama'] ?? null;
-    $keterangan = $_POST['keterangan'] ?? ''; // Ambil keterangan yang mungkin ditambahkan
     $foto_path = $foto_lama;
+    
+    // VARIABEL BARU: Google Maps Link dan Keterangan
+    $google_maps_link = $_POST['google_maps_link'] ?? ''; 
+    $keterangan = $_POST['keterangan'] ?? '';
+
     
     // Cek apakah user yang login adalah Pemilik Kotak Amal (untuk menentukan redirect)
     $is_pemilik_ka_logged_in = isset($_SESSION['is_pemilik_kotak_amal']) && $_SESSION['is_pemilik_kotak_amal'] === true;
@@ -72,24 +76,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    // Kueri SQL untuk memperbarui data kotak amal (tambahan Ket)
-    $sql = "UPDATE KotakAmal SET Nama_Toko = ?, Alamat_Toko = ?, Nama_Pemilik = ?, WA_Pemilik = ?, Email = ?, Jadwal_Pengambilan = ?, Foto = ?, Ket = ? WHERE ID_KotakAmal = ?";
-    $stmt = $conn->prepare($sql);
+    // Kueri SQL untuk memperbarui data kotak amal (Menambahkan Google_Maps_Link)
+    // Asumsi: Google_Maps_Link ditambahkan setelah Email.
+    $sql_base = "UPDATE KotakAmal SET Nama_Toko = ?, Alamat_Toko = ?, Nama_Pemilik = ?, WA_Pemilik = ?, Email = ?, Google_Maps_Link = ?, Jadwal_Pengambilan = ?, Foto = ?, Ket = ? WHERE ID_KotakAmal = ?";
+    $stmt = $conn->prepare($sql_base);
 
     if ($stmt === false) {
         die("Error saat menyiapkan kueri: " . $conn->error);
     }
     
     // Perhatikan urutan dan tipe parameter (s untuk string)
-    $stmt->bind_param("sssssssss", 
+    // ssssssssss (10 strings)
+    $stmt->bind_param("ssssssssss", 
         $nama_toko, 
         $alamat_toko, 
         $nama_pemilik, 
         $wa_pemilik, 
         $email_pemilik, 
+        $google_maps_link, // <-- Kolom Google_Maps_Link
         $jadwal_pengambilan, 
         $foto_path, 
-        $keterangan, // Kolom Ket
+        $keterangan, 
         $id_kotak_amal
     );
 

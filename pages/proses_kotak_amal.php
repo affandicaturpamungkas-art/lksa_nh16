@@ -42,20 +42,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $nama_toko = $_POST['nama_toko'] ?? '';
     
     // MENGGUNAKAN FIELD ALAMAT GABUNGAN
-    $alamat_toko = $_POST['alamat_toko'] ?? ''; // <--- Ambil alamat lengkap dari hidden field
+    $alamat_toko = $_POST['alamat_toko'] ?? ''; 
 
     // Mengambil data wilayah yang dikirim dari hidden field (Nama Wilayah)
     $nama_pemilik = $_POST['nama_pemilik'] ?? '';
     $wa_pemilik = $_POST['wa_pemilik'] ?? '';
     $email_pemilik = $_POST['email_pemilik'] ?? '';
     $jadwal_pengambilan = $_POST['jadwal_pengambilan'] ?? ''; 
+    
+    // VARIABEL BARU: Google Maps Link
+    $google_maps_link = $_POST['google_maps_link'] ?? '';
+    
+    // Revert 'keterangan' to original field name
     $keterangan = $_POST['keterangan'] ?? '';
     
-    // PERUBAHAN KRITIS: Latitude dan Longitude diset ke 0.0 karena dihapus dari form
+    // PERUBAHAN KRITIS: Latitude dan Longitude diset ke 0.0
     $latitude = 0.0;
     $longitude = 0.0;
-    // Link Google Maps tidak disimpan ke DB (jika tidak ada kolom)
-    $google_maps_link = $_POST['google_maps_link'] ?? '';
     
     // VARIABEL WILAYAH BARU (DIAMBIL DARI FIELD HIDDEN)
     $provinsi_name = $_POST['ID_Provinsi'] ?? ''; 
@@ -82,32 +85,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $counter = $row['total'] + 1;
     $id_kotak_amal = "KA_LKSA_NH_" . $tgl_id . "_" . str_pad($counter, 3, '0', STR_PAD_LEFT);
 
-    // Kueri SQL untuk memasukkan data kotak amal (16 Kolom)
-    $sql = "INSERT INTO KotakAmal (ID_KotakAmal, Id_lksa, Nama_Toko, Alamat_Toko, ID_Provinsi, ID_Kabupaten, ID_Kecamatan, ID_Kelurahan, Nama_Pemilik, WA_Pemilik, Email, Jadwal_Pengambilan, Ket, Foto, Latitude, Longitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    // Kueri SQL untuk memasukkan data kotak amal (17 Kolom)
+    $sql = "INSERT INTO KotakAmal (ID_KotakAmal, Id_lksa, Nama_Toko, Alamat_Toko, ID_Provinsi, ID_Kabupaten, ID_Kecamatan, ID_Kelurahan, Nama_Pemilik, WA_Pemilik, Email, Google_Maps_Link, Jadwal_Pengambilan, Ket, Foto, Latitude, Longitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
 
     if ($stmt === false) {
         die("Error saat menyiapkan kueri: " . $conn->error);
     }
     
-    // Tipe parameter: 14 string (s) + 2 double (d) = 16 karakter
-    $stmt->bind_param("ssssssssssssssdd", 
+    // Tipe parameter: 15 string (s) + 2 double (d) = 17 karakter
+    $stmt->bind_param("sssssssssssssssdd", 
         $id_kotak_amal, 
         $id_lksa, 
         $nama_toko, 
         $alamat_toko, 
-        $provinsi_name, // <-- Nilai dari API Wilayah
-        $kabupaten_name, // <-- Nilai dari API Wilayah
-        $kecamatan_name, // <-- Nilai dari API Wilayah
-        $kelurahan_name, // <-- Nilai dari API Wilayah
+        $provinsi_name, 
+        $kabupaten_name, 
+        $kecamatan_name, 
+        $kelurahan_name, 
         $nama_pemilik, 
         $wa_pemilik, 
         $email_pemilik, 
+        $google_maps_link, // <-- Kolom Google_Maps_Link
         $jadwal_pengambilan, 
         $keterangan, 
         $foto_path, 
-        $latitude, // <-- Diset 0.0
-        $longitude // <-- Diset 0.0
+        $latitude, 
+        $longitude 
     );
 
     if ($stmt->execute()) {

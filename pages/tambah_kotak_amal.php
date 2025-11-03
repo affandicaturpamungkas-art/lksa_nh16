@@ -64,23 +64,16 @@ $base_path = "http://" . $_SERVER['HTTP_HOST'] . "/lksa_nh/";
                 <textarea name="alamat_detail_manual" id="alamat_detail_manual" rows="2" required placeholder="Contoh: Jl. Sudirman No. 10, RT 01/RW 02"></textarea>
             </div>
         </div>
-
+        
         <div class="form-section">
-            <h2><i class="fas fa-map-marked-alt"></i> Link Google Maps (URL)</h2>
-            <p>Masukkan link Google Maps untuk referensi lokasi.</p>
+            <h2><i class="fas fa-link"></i> Link Google Maps (URL)</h2>
+            <p>Masukkan link Google Maps yang ingin ditampilkan di peta.</p>
             
             <div class="form-group">
                 <label>Link Google Maps (URL):</label>
-                <input type="text" name="google_maps_link" id="google_maps_link" placeholder="Contoh: https://maps.app.goo.gl/...">
+                <input type="url" name="google_maps_link" id="google_maps_link" placeholder="Contoh: https://maps.app.goo.gl/..." >
             </div>
-            
-            <input type="hidden" id="latitude" name="latitude" value="">
-            <input type="hidden" id="longitude" name="longitude" value="">
-            
-           
         </div>
-
-
         <div class="form-section">
             <h2>Informasi Pemilik & Jadwal</h2>
             <div class="form-grid">
@@ -133,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const manualAddressInput = document.getElementById('alamat_detail_manual');
     
     // ====================================================================
-    // === INISIALISASI API WILAYAH ===
+    // === INISIALISASI API WILAYAH (Tetap) ===
     
     if (typeof initWilayah !== 'undefined') {
         initWilayah(
@@ -150,11 +143,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         );
     } else {
-        console.error("Error: wilayah.js failed to load or initWilayah is undefined.");
+        console.error("Error: wilayah.js failed to load atau initWilayah tidak terdefinisi.");
     }
     // ====================================================================
 
-    // === Logic Submit untuk Menggabungkan Alamat ===
+    // === Logic Submit untuk Menggabungkan Alamat (Tetap) ===
     
     form.addEventListener('submit', (e) => {
         

@@ -11,22 +11,28 @@ if (!in_array($_SESSION['jabatan'] ?? '', ['Pimpinan', 'Kepala LKSA', 'Petugas K
 $id_lksa = $_SESSION['id_lksa'];
 
 // --- Helper functions for formatting ---
-// MODIFIKASI: Mengembalikan hanya Bulan dan Tahun dalam Huruf
+// MODIFIKASI: Mengembalikan Tanggal, Bulan (Huruf), dan Tahun
 function format_tanggal_indo($date_string) {
-    if (!$date_string) return '-';
-    if (preg_match("/^\d{4}-\d{2}-\d{2}$/", $date_string)) {
-        $bulan_indonesia = [
-            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
-            '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
-            '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
-        ];
-        $parts = explode('-', $date_string);
-        $month = $bulan_indonesia[$parts[1]];
-        $year = $parts[0];
-        // Mengembalikan Nama Bulan dan Tahun saja
-        return $month . ' ' . $year;
-    }
-    return $date_string;
+    if (!$date_string || $date_string === '0000-00-00') return '-';
+    
+    $timestamp = strtotime($date_string);
+    
+    // Peta Bulan
+    $bulan_indonesia = [
+        'January' => 'Januari', 'February' => 'Februari', 'March' => 'Maret', 
+        'April' => 'April', 'May' => 'Mei', 'June' => 'Juni', 
+        'July' => 'Juli', 'August' => 'Agustus', 'September' => 'September', 
+        'October' => 'Oktober', 'November' => 'November', 'December' => 'Desember'
+    ];
+    
+    $day = date('d', $timestamp); // Ambil tanggal (DD)
+    $month_en = date('F', $timestamp);
+    $year = date('Y', $timestamp);
+    
+    $month_id = $bulan_indonesia[$month_en] ?? $month_en;
+
+    // Mengembalikan Tanggal, Nama Bulan, dan Tahun
+    return $day . ' ' . $month_id . ' ' . $year;
 }
 // ----------------------------------------------------
 
@@ -377,7 +383,8 @@ $result_history = $stmt_history->get_result();
     <tbody>
         <?php if ($result_ka->num_rows > 0) { ?>
             <?php while ($row = $result_ka->fetch_assoc()) { 
-                $tgl_terakhir_ambil = $row['Tgl_Terakhir_Ambil'] ? date('d-m-Y', strtotime($row['Tgl_Terakhir_Ambil'])) : 'Belum Pernah';
+                $tgl_terakhir_ambil = $row['Tgl_Terakhir_Ambil'] ? format_tanggal_indo($row['Tgl_Terakhir_Ambil']) : 'Belum Pernah';
+                // Penentuan 'is_recent' tetap menggunakan perbandingan tanggal penuh (d-m-Y)
                 $is_recent = (strtotime($row['Tgl_Terakhir_Ambil'] ?? '1970-01-01') >= strtotime('-7 days'));
             ?>
                 <tr>
