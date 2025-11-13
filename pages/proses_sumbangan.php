@@ -13,7 +13,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $sedekah = $_POST['sedekah'] ?? 0;
     $fidyah = $_POST['fidyah'] ?? 0;
     $natura = $_POST['natura'] ?? '';
+    $metode_pembayaran = $_POST['metode_pembayaran'] ?? 'Tunai'; // <--- Variabel Baru
     $tgl_trans = date('Y-m-d'); 
+    $status_verifikasi = 'Menunggu Verifikasi'; // Status default
 
     // Membuat ID Kwitansi yang unik sesuai format KWZIS_thbltgl_XXX
     $tgl_kwitansi = date('ymd');
@@ -24,8 +26,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $id_kwitansi = "KWZIS_" . $tgl_kwitansi . "_" . str_pad($counter, 3, '0', STR_PAD_LEFT);
 
     // Kueri SQL untuk memasukkan data sumbangan
-    // Menggunakan nama kolom yang umum digunakan: Zakat_Profesi dan Zakat_Maal
-    $sql = "INSERT INTO Sumbangan (ID_Kwitansi_ZIS, ID_user, Id_lksa, ID_donatur, Zakat_Profesi, Zakat_Maal, Infaq, Sedekah, Fidyah, Natura, Tgl) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    // PERBAIKAN: Menambahkan kolom Status_Verifikasi dan Metode_Pembayaran
+    $sql = "INSERT INTO Sumbangan (ID_Kwitansi_ZIS, ID_user, Id_lksa, ID_donatur, Zakat_Profesi, Zakat_Maal, Infaq, Sedekah, Fidyah, Natura, Metode_Pembayaran, Tgl, Status_Verifikasi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
 
     // Memeriksa apakah prepare berhasil
@@ -33,7 +35,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         die("Error saat menyiapkan kueri: " . $conn->error);
     }
 
-    $stmt->bind_param("sssssssssss", $id_kwitansi, $id_user, $id_lksa, $id_donatur, $zakat_profesi, $zakat_maal, $infaq, $sedekah, $fidyah, $natura, $tgl_trans);
+    // Binding parameters: 13 parameter total
+    $stmt->bind_param("sssssssssssss", 
+        $id_kwitansi, 
+        $id_user, 
+        $id_lksa, 
+        $id_donatur, 
+        $zakat_profesi, 
+        $zakat_maal, 
+        $infaq, 
+        $sedekah, 
+        $fidyah, 
+        $natura, 
+        $metode_pembayaran, // <--- Binding Metode Pembayaran
+        $tgl_trans,
+        $status_verifikasi
+    );
 
     if ($stmt->execute()) {
         header("Location: sumbangan.php");
