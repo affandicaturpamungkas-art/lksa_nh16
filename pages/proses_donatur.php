@@ -89,6 +89,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $status_data_active = 'Active'; 
 
+    // [START FIX] Konversi string kosong ('') menjadi NULL untuk kolom DATE
+    if ($tgl_rutinitas === '') {
+        $tgl_rutinitas = null;
+    }
+    // [END FIX]
+
     // PERUBAHAN KRITIS: QUERY INSERT DENGAN 15 KOLOM (Termasuk 4 Kolom Wilayah)
     $sql = "INSERT INTO Donatur (ID_donatur, ID_LKSA, ID_user, Nama_Donatur, NO_WA, Alamat_Lengkap, Email, Foto, Status, Tgl_Rutinitas, Status_Data, ID_Provinsi, ID_Kota_Kab, ID_Kecamatan, ID_Kelurahan_Desa) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -109,7 +115,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $email, 
         $foto_path, 
         $status_donasi, 
-        $tgl_rutinitas, // <-- MENGGUNAKAN NILAI BARU DARI POST
+        $tgl_rutinitas, // <-- MENGGUNAKAN NILAI BARU (bisa string 'YYYY-MM-DD' atau null)
         $status_data_active,
         // Kolom Wilayah Baru (Sesuai nama kolom di database Anda)
         $id_provinsi,
