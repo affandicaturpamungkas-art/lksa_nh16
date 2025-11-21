@@ -9,15 +9,14 @@ if (!in_array($_SESSION['jabatan'] ?? '', ['Pimpinan', 'Kepala LKSA', 'Petugas K
 }
 
 $id_lksa = $_SESSION['id_lksa'];
+$jabatan_session = $_SESSION['jabatan']; // Ambil jabatan untuk logika tampilan tombol
 
 // --- Helper functions for formatting ---
-// MODIFIKASI: Mengembalikan Tanggal, Bulan (Huruf), dan Tahun
 function format_tanggal_indo($date_string) {
     if (!$date_string || $date_string === '0000-00-00') return '-';
     
     $timestamp = strtotime($date_string);
     
-    // Peta Bulan
     $bulan_indonesia = [
         'January' => 'Januari', 'February' => 'Februari', 'March' => 'Maret', 
         'April' => 'April', 'May' => 'Mei', 'June' => 'Juni', 
@@ -25,20 +24,18 @@ function format_tanggal_indo($date_string) {
         'October' => 'Oktober', 'November' => 'November', 'December' => 'Desember'
     ];
     
-    $day = date('d', $timestamp); // Ambil tanggal (DD)
+    $day = date('d', $timestamp);
     $month_en = date('F', $timestamp);
     $year = date('Y', $timestamp);
     
     $month_id = $bulan_indonesia[$month_en] ?? $month_en;
 
-    // Mengembalikan Tanggal, Nama Bulan, dan Tahun
     return $day . ' ' . $month_id . ' ' . $year;
 }
 // ----------------------------------------------------
 
 // Ambil input pencarian (untuk pencarian teks bebas)
 $search_query = $_GET['search'] ?? '';
-// NEW: Ambil filter bulan dari dropdown
 $filter_month = $_GET['filter_month'] ?? ''; 
 $search_param = "%" . $search_query . "%";
 
@@ -49,7 +46,7 @@ $bulan_map = [
     '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
 ];
 
-// LOGIKA MAPPING BULAN UNTUK PENCARIAN (untuk mencari dari query teks, jika tidak ada filter_month)
+// LOGIKA MAPPING BULAN UNTUK PENCARIAN (jika user mengetik nama bulan)
 $found_month_number = null;
 $lower_query = strtolower($search_query);
 
@@ -73,8 +70,7 @@ $column_labels = [
 ];
 
 // Query untuk mengambil data Kotak Amal AKTIF
-$sql = "SELECT ka.ID_KotakAmal, ka.Nama_Toko, ka.Alamat_Toko, ka.Nama_Pemilik, ka.WA_Pemilik, ka.Jadwal_Pengambilan, ka.ID_LKSA, 
-                MAX(dka.Tgl_Ambil) AS Tgl_Terakhir_Ambil
+$sql = "SELECT ka.*, MAX(dka.Tgl_Ambil) AS Tgl_Terakhir_Ambil
         FROM KotakAmal ka
         LEFT JOIN Dana_KotakAmal dka ON ka.ID_KotakAmal = dka.ID_KotakAmal
         WHERE ka.Status = 'Active'";
@@ -84,7 +80,6 @@ $types = "";
 
 // 1. Cek Filter Bulan/Teks
 if (!empty($filter_month)) {
-    // Filter berdasarkan bulan yang dipilih dari dropdown
     $sql .= " AND MONTH(ka.Jadwal_Pengambilan) = ?";
     $params[] = $filter_month;
     $types .= "s";
@@ -92,14 +87,11 @@ if (!empty($filter_month)) {
 
 // 2. Cek Pencarian Teks (Sekunder/Pelengkap)
 if (!empty($search_query)) {
-    // Jika filter bulan tidak digunakan, gunakan query teks sebagai filter utama
     if (empty($filter_month) && $found_month_number) {
-        // Jika user mengetik nama bulan di search box, filter by month number
         $sql .= " AND MONTH(ka.Jadwal_Pengambilan) = ?";
         $params[] = $found_month_number;
         $types .= "s";
     } elseif (empty($filter_month)) {
-        // Jika tidak ada filter bulan, gunakan teks sebagai filter umum (termasuk tahun)
         $sql .= " AND (ka.ID_KotakAmal LIKE ? OR ka.Nama_Toko LIKE ? OR ka.Alamat_Toko LIKE ? OR ka.Nama_Pemilik LIKE ? OR ka.Jadwal_Pengambilan LIKE ?)";
         $search_param_like = "%" . $search_query . "%";
         for ($i = 0; $i < 5; $i++) {
@@ -324,12 +316,30 @@ $result_history = $stmt_history->get_result();
         color: #047857;
         border: 1px solid #10B981;
     }
+    .status-tugas-success {
+        background-color: #FFEDD5;
+        color: #9A3412;
+        border: 1px solid #F97316;
+    }
+    .status-tugas-batal {
+        background-color: #FEE2E2;
+        color: #B91C1C;
+        border: 1px solid #EF4444;
+    }
 
 </style>
 
 <?php if (isset($_GET['status']) && $_GET['status'] == 'jadwal_success') { ?>
     <div class="status-alert status-jadwal-success">
         <i class="fas fa-check-circle"></i> Jadwal pengambilan berikutnya berhasil diperbarui!
+    </div>
+<?php } elseif (isset($_GET['status']) && $_GET['status'] == 'tugas_dibuat') { ?>
+    <div class="status-alert status-tugas-success">
+        <i class="fas fa-file-signature"></i> Surat Tugas berhasil dibuat. Petugas Kotak Amal kini dapat melanjutkan pengambilan.
+    </div>
+<?php } elseif (isset($_GET['status']) && $_GET['status'] == 'tugas_dibatalkan') { ?>
+    <div class="status-alert status-tugas-batal">
+        <i class="fas fa-times-circle"></i> Surat Tugas berhasil dibatalkan.
     </div>
 <?php } ?>
 
@@ -377,6 +387,7 @@ $result_history = $stmt_history->get_result();
             <th>Lokasi</th>
             <th>Jadwal Ambil</th>
             <th>Terakhir Ambil</th>
+            <th>Status Tugas</th>
             <th>Aksi</th>
         </tr>
     </thead>
@@ -384,8 +395,25 @@ $result_history = $stmt_history->get_result();
         <?php if ($result_ka->num_rows > 0) { ?>
             <?php while ($row = $result_ka->fetch_assoc()) { 
                 $tgl_terakhir_ambil = $row['Tgl_Terakhir_Ambil'] ? format_tanggal_indo($row['Tgl_Terakhir_Ambil']) : 'Belum Pernah';
-                // Penentuan 'is_recent' tetap menggunakan perbandingan tanggal penuh (d-m-Y)
                 $is_recent = (strtotime($row['Tgl_Terakhir_Ambil'] ?? '1970-01-01') >= strtotime('-7 days'));
+                
+                // --- LOGIKA STATUS SURAT TUGAS AKTIF (MODIFIKASI KRITIS) ---
+                // Mengambil ID Surat Tugas dan Nama Pembuat Tugas
+                $sql_check_st = "SELECT st.ID_Surat_Tugas, u.Nama_User AS Nama_Pembuat 
+                                 FROM SuratTugas st
+                                 JOIN User u ON st.ID_user = u.Id_user COLLATE utf8mb4_general_ci /* FIX COLLISION */
+                                 WHERE st.ID_KotakAmal = ? AND st.Status_Tugas = 'Aktif'"; 
+                $stmt_check_st = $conn->prepare($sql_check_st);
+                $stmt_check_st->bind_param("s", $row['ID_KotakAmal']);
+                $stmt_check_st->execute();
+                $result_check_st = $stmt_check_st->get_result();
+                $active_st = $result_check_st->fetch_assoc();
+                $stmt_check_st->close();
+                
+                $active_st_id = $active_st['ID_Surat_Tugas'] ?? null;
+                $nama_pembuat = $active_st['Nama_Pembuat'] ?? null;
+                $task_is_active = !empty($active_st_id);
+                // --- END LOGIKA STATUS SURAT TUGAS AKTIF ---
             ?>
                 <tr>
                     <td><?php echo $row['ID_KotakAmal']; ?></td>
@@ -407,16 +435,51 @@ $result_history = $stmt_history->get_result();
                             <?php echo $tgl_terakhir_ambil; ?>
                         </span>
                     </td>
+                    
                     <td>
-                        <a href="catat_pengambilan_ka.php?id=<?php echo $row['ID_KotakAmal']; ?>" class="btn btn-success btn-action-icon" title="Catat Pengambilan">
-                            <i class="fas fa-money-bill-wave"></i> Catat Pengambilan
-                        </a>
+                        <?php if ($task_is_active) { ?>
+                            <a href="detail_surat_tugas.php?id_tugas=<?php echo $active_st_id; ?>" 
+                               class="status-alert status-tugas-success" 
+                               style="padding: 4px 8px; margin:0; font-size: 0.8em; display: inline-block; text-decoration: none;"
+                               title="Dibuat oleh: <?php echo htmlspecialchars($nama_pembuat); ?>">
+                                Tugas Aktif <i class="fas fa-arrow-right"></i>
+                            </a>
+                        <?php } else { ?>
+                            -
+                        <?php } ?>
+                    </td>
+                    
+                    <td data-label="Aksi">
+                        <?php 
+                        if ($jabatan_session == 'Pimpinan' || $jabatan_session == 'Kepala LKSA') {
+                            // --- VIEW ATASAN: Create/Cancel Task ---
+                            if ($task_is_active) { ?>
+                                <a href="proses_batal_surat_tugas.php?id_tugas=<?php echo $active_st_id; ?>" class="btn btn-danger btn-action-icon" title="Batalkan Tugas">
+                                    <i class="fas fa-times-circle"></i> Batalkan
+                                </a>
+                            <?php } else { ?>
+                                <a href="proses_buat_surat_tugas.php?id=<?php echo $row['ID_KotakAmal']; ?>" class="btn btn-primary btn-action-icon" style="background-color: #F97316;" title="Buat Surat Tugas">
+                                    <i class="fas fa-file-signature"></i> Buat Surat Tugas
+                                </a>
+                            <?php }
+                        } elseif ($jabatan_session == 'Petugas Kotak Amal') {
+                            // --- VIEW PETUGAS: Claim Task ---
+                            if ($task_is_active) { ?>
+                                <a href="catat_pengambilan_ka.php?id=<?php echo $row['ID_KotakAmal']; ?>&id_tugas=<?php echo $active_st_id; ?>" class="btn btn-success btn-action-icon" title="Mulai Pengambilan">
+                                    <i class="fas fa-money-bill-wave"></i> Ambil
+                                </a>
+                            <?php } else { ?>
+                                <span class="btn btn-cancel btn-action-icon" style="opacity: 0.6; cursor: default;" title="Menunggu Atasan membuat tugas">Menunggu Tugas</span>
+                            <?php }
+                        } else { ?>
+                            <span class="btn btn-cancel btn-action-icon" style="opacity: 0.6; cursor: default;">Akses Dibatasi</span>
+                        <?php } ?>
                     </td>
                 </tr>
             <?php } ?>
         <?php } else { ?>
             <tr>
-                <td colspan="7" class="no-data">Tidak ada Kotak Amal aktif yang ditemukan.</td>
+                <td colspan="8" class="no-data">Tidak ada Kotak Amal aktif yang ditemukan.</td>
             </tr>
         <?php } ?>
     </tbody>

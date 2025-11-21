@@ -14,6 +14,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $id_kotak_amal = $_POST['id_kotak_amal'] ?? '';
     $jumlah_uang = $_POST['jumlah_uang'] ?? 0;
     $tgl_ambil = $_POST['tgl_ambil'] ?? date('Y-m-d');
+    $id_surat_tugas = $_POST['id_surat_tugas'] ?? ''; // <-- BARU: Ambil ID Surat Tugas dari form
 
     // Generate ID Kwitansi
     $tgl_id = date('ymd');
@@ -35,6 +36,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if ($stmt->execute()) {
         $stmt->close();
+        
+        // --- BARU: Update status Surat Tugas menjadi Selesai ---
+        if (!empty($id_surat_tugas)) {
+            $sql_update_st = "UPDATE SuratTugas SET Status_Tugas = 'Selesai' WHERE ID_Surat_Tugas = ?";
+            $stmt_update_st = $conn->prepare($sql_update_st);
+            if ($stmt_update_st) {
+                $stmt_update_st->bind_param("s", $id_surat_tugas);
+                $stmt_update_st->execute();
+                $stmt_update_st->close();
+            }
+        }
+        // --- END BARU: Update status Surat Tugas ---
+        
         // Redirect ke halaman konfirmasi dengan data kwitansi
         header("Location: konfirmasi_pengambilan.php?kwitansi=" . $id_kwitansi);
         exit;

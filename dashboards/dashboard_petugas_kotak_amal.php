@@ -113,15 +113,15 @@ include 'includes/header.php'; // <-- LOKASI BARU
                             <span style="color: green; font-weight: bold;">Sudah Diambil</span>
                         <?php } else { ?>
                             <span style="color: orange; font-weight: bold;">Belum Diambil</span>
-                        <? } ?>
-                    </td>
+                        <?php } ?> </td>
                     <td>
                         <a href="pages/detail_kotak_amal.php?id=<?php echo htmlspecialchars($row['ID_KotakAmal']); ?>" class="btn btn-primary btn-action-icon" title="Lihat Profil & Lokasi"><i class="fas fa-map-marked-alt"></i></a>
                     </td>
                     <td>
                         <?php if ($row['is_collected_today']) { ?>
+                            <span style="color: #6B7280; font-weight: bold; font-size: 0.9em;">Selesai</span>
                         <?php } else { ?>
-                            <a href="pages/dana-kotak-amal.php?id_kotak_amal=<?php echo htmlspecialchars($row['ID_KotakAmal']); ?>" class="btn btn-primary" style="padding: 5px 10px; font-size: 0.9em; background-color: #10B981;">Ambil</a>
+                            <a href="pages/dana-kotak-amal.php" class="btn btn-primary" style="padding: 5px 10px; font-size: 0.9em; background-color: #10B981;">Lanjutkan Tugas</a>
                         <?php } ?>
                     </td>
                 </tr>

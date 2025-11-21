@@ -14,6 +14,12 @@ if (empty($id_kotak_amal)) {
     die("ID Kotak Amal tidak ditemukan.");
 }
 
+// Tambahkan pengambilan ID Surat Tugas <-- BARU
+$id_surat_tugas = $_GET['id_tugas'] ?? ''; 
+if (empty($id_surat_tugas)) {
+    die("ID Surat Tugas tidak ditemukan. Silakan buat Surat Tugas terlebih dahulu melalui menu Pengambilan Kotak Amal.");
+}
+
 // Ambil data Kotak Amal
 $sql = "SELECT Nama_Toko, Nama_Pemilik FROM KotakAmal WHERE ID_KotakAmal = ?";
 $stmt = $conn->prepare($sql);
@@ -187,6 +193,9 @@ if (!$data_ka) {
                 Pemilik: <?php echo htmlspecialchars($data_ka['Nama_Pemilik']); ?>
             </small>
             <div class="auto-status-badge">
+                <i class="fas fa-file-signature"></i> Surat Tugas ID: <?php echo htmlspecialchars($id_surat_tugas); ?>
+            </div>
+            <div class="auto-status-badge">
                 <i class="fas fa-calendar-check"></i> Tanggal Dicatat Otomatis (Hari Ini)
             </div>
         </div>
@@ -195,8 +204,7 @@ if (!$data_ka) {
             <input type="hidden" name="id_kotak_amal" value="<?php echo htmlspecialchars($id_kotak_amal); ?>">
             <input type="hidden" name="id_user" value="<?php echo htmlspecialchars($_SESSION['id_user']); ?>">
             <input type="hidden" name="id_lksa" value="<?php echo htmlspecialchars($_SESSION['id_lksa']); ?>">
-
-            <div class="form-section">
+            <input type="hidden" name="id_surat_tugas" value="<?php echo htmlspecialchars($id_surat_tugas); ?>"> <div class="form-section">
                 <div class="form-group">
                     <label for="jumlah_uang">Jumlah Uang Tunai yang Diambil (Rp):</label>
                     <input type="number" id="jumlah_uang" name="jumlah_uang" required min="0" placeholder="0">
