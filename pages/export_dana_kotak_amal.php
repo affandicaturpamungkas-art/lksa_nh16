@@ -10,17 +10,57 @@ if (!in_array($jabatan, ['Pimpinan', 'Kepala LKSA'])) {
 
 $id_lksa = $_SESSION['id_lksa'] ?? '';
 
+// --- NEW: Ambil parameter filter dari GET request ---
+$filter_mode_hist = $_GET['filter_mode_hist'] ?? ''; 
+$hist_month = $_GET['hist_month'] ?? '';
+$hist_year = $_GET['hist_year'] ?? '';
+// --- END NEW PARAMETER ---
+
 // Query untuk mengambil data Pengambilan Dana Kotak Amal
 $sql = "SELECT dka.ID_Kwitansi_KA, dka.Tgl_Ambil, ka.Nama_Toko, dka.JmlUang, u.Nama_User AS Petugas_Pengambil, dka.ID_KotakAmal, dka.Id_lksa
         FROM Dana_KotakAmal dka
         LEFT JOIN KotakAmal ka ON dka.ID_KotakAmal = ka.ID_KotakAmal
         LEFT JOIN User u ON dka.Id_user = u.Id_user";
         
+$params = [];
+$types = "";
+$where_conditions = [];
+
+// 1. Filter LKSA
 if ($jabatan != 'Pimpinan') {
-    // Batasi data hanya pada LKSA yang bersangkutan
-    $sql .= " WHERE dka.Id_lksa = '$id_lksa'";
+    $where_conditions[] = " dka.Id_lksa = ?";
+    $params[] = $id_lksa;
+    $types .= "s";
 }
-$result = $conn->query($sql);
+
+// 2. Filter Waktu (Menggunakan parameter dari Riwayat)
+if ($filter_mode_hist == 'month' && !empty($hist_month) && !empty($hist_year)) {
+    $where_conditions[] = " MONTH(dka.Tgl_Ambil) = ? AND YEAR(dka.Tgl_Ambil) = ?";
+    $params[] = $hist_month;
+    $params[] = $hist_year;
+    $types .= "ss";
+} elseif ($filter_mode_hist == 'year' && !empty($hist_year)) {
+    $where_conditions[] = " YEAR(dka.Tgl_Ambil) = ?";
+    $params[] = $hist_year;
+    $types .= "s";
+}
+// Jika filter_mode_hist == 'all', tidak ada klausa WHERE tambahan untuk waktu.
+
+if (!empty($where_conditions)) {
+    $sql .= " WHERE " . implode(" AND ", $where_conditions);
+}
+
+$sql .= " ORDER BY dka.Tgl_Ambil DESC";
+
+// Eksekusi Kueri
+$stmt = $conn->prepare($sql);
+
+if (!empty($params)) {
+    $stmt->bind_param($types, ...$params);
+}
+
+$stmt->execute();
+$result = $stmt->get_result();
 
 if (!$result) {
     die("Error dalam query: " . $conn->error);
@@ -61,13 +101,13 @@ while ($row = $result->fetch_assoc()) {
 
 // 5. Tulis baris total (SUM per kolom)
 $total_row = [
-    'TOTAL', // Placeholder kolom 1
-    '', // Placeholder kolom 2
-    '', // Placeholder kolom 3
-    $total_jml_uang, // Total di kolom 4
-    '', // Placeholder kolom 5
-    '', // Placeholder kolom 6
-    '' // Placeholder kolom 7
+    'TOTAL', 
+    '', 
+    '', 
+    $total_jml_uang, 
+    '', 
+    '', 
+    ''
 ];
 fputcsv($output, $total_row, ';');
 

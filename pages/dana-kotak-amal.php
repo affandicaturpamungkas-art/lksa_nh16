@@ -13,28 +13,26 @@ $jabatan_session = $_SESSION['jabatan']; // Ambil jabatan untuk logika tampilan 
 
 // --- Helper functions for formatting ---
 function format_tanggal_indo($date_string) {
-    if (!$date_string || $date_string === '0000-00-00') return '-';
-    
-    $timestamp = strtotime($date_string);
-    
-    $bulan_indonesia = [
-        'January' => 'Januari', 'February' => 'Februari', 'March' => 'Maret', 
-        'April' => 'April', 'May' => 'Mei', 'June' => 'Juni', 
-        'July' => 'Juli', 'August' => 'Agustus', 'September' => 'September', 
-        'October' => 'Oktober', 'November' => 'November', 'December' => 'Desember'
-    ];
-    
-    $day = date('d', $timestamp);
-    $month_en = date('F', $timestamp);
-    $year = date('Y', $timestamp);
-    
-    $month_id = $bulan_indonesia[$month_en] ?? $month_en;
-
-    return $day . ' ' . $month_id . ' ' . $year;
+    if (!$date_string) return '-';
+    // Cek apakah string adalah format tanggal YYYY-MM-DD
+    if (preg_match("/^\d{4}-\d{2}-\d{2}$/", $date_string)) {
+        $bulan_indonesia = [
+            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
+            '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
+            '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+        ];
+        $parts = explode('-', $date_string);
+        $day = $parts[2];
+        $month = $bulan_indonesia[$parts[1]];
+        $year = $parts[0];
+        return $day . ' ' . $month . ' ' . $year;
+    }
+    // Jika bukan tanggal, kembalikan string aslinya (misalnya: nama hari 'Senin')
+    return $date_string;
 }
 // ----------------------------------------------------
 
-// Ambil input pencarian (untuk pencarian teks bebas)
+// Ambil input pencarian dan filter
 $search_query = $_GET['search'] ?? '';
 $filter_month = $_GET['filter_month'] ?? ''; 
 $search_param = "%" . $search_query . "%";
@@ -46,7 +44,7 @@ $bulan_map = [
     '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
 ];
 
-// LOGIKA MAPPING BULAN UNTUK PENCARIAN (jika user mengetik nama bulan)
+// LOGIKA MAPPING BULAN UNTUK PENCARIAN
 $found_month_number = null;
 $lower_query = strtolower($search_query);
 
@@ -68,6 +66,7 @@ $column_labels = [
     'Nama_Pemilik' => 'Nama Pemilik',
     'Jadwal_Pengambilan' => 'Jadwal Ambil'
 ];
+
 
 // Query untuk mengambil data Kotak Amal AKTIF
 $sql = "SELECT ka.*, MAX(dka.Tgl_Ambil) AS Tgl_Terakhir_Ambil
@@ -119,33 +118,7 @@ if (!empty($params)) {
 
 $stmt->execute();
 $result_ka = $stmt->get_result();
-
-
-// --- Query untuk Riwayat Pengambilan ---
-$sql_history = "SELECT dka.*, ka.Nama_Toko, u.Nama_User
-                FROM Dana_KotakAmal dka
-                LEFT JOIN KotakAmal ka ON dka.ID_KotakAmal = ka.ID_KotakAmal
-                LEFT JOIN User u ON dka.Id_user = u.Id_user";
-                
-$params_hist = [];
-$types_hist = "";
-                
-if ($_SESSION['jabatan'] != 'Pimpinan') {
-    $sql_history .= " WHERE dka.Id_lksa = ?";
-    $params_hist[] = $id_lksa;
-    $types_hist = "s";
-}
-$sql_history .= " ORDER BY dka.Tgl_Ambil DESC LIMIT 10"; // Limit history
-
-$stmt_history = $conn->prepare($sql_history);
-
-if (!empty($params_hist)) {
-    $stmt_history->bind_param($types_hist, ...$params_hist);
-}
-
-$stmt_history->execute();
-$result_history = $stmt_history->get_result();
-
+// HAPUS SEMUA QUERY HISTORY
 ?>
 <style>
     :root {
@@ -256,7 +229,7 @@ $result_history = $stmt_history->get_result();
         align-items: center;
     }
     
-    /* Tombol Reset (Icon Only) - DIPERBAIKI */
+    /* Tombol Reset (Icon Only) */
     .btn-reset-simple {
         background-color: var(--cancel-color); /* Neutral Gray */
         color: white;
@@ -397,11 +370,10 @@ $result_history = $stmt_history->get_result();
                 $tgl_terakhir_ambil = $row['Tgl_Terakhir_Ambil'] ? format_tanggal_indo($row['Tgl_Terakhir_Ambil']) : 'Belum Pernah';
                 $is_recent = (strtotime($row['Tgl_Terakhir_Ambil'] ?? '1970-01-01') >= strtotime('-7 days'));
                 
-                // --- LOGIKA STATUS SURAT TUGAS AKTIF (MODIFIKASI KRITIS) ---
-                // Mengambil ID Surat Tugas dan Nama Pembuat Tugas
+                // --- LOGIKA STATUS SURAT TUGAS AKTIF ---
                 $sql_check_st = "SELECT st.ID_Surat_Tugas, u.Nama_User AS Nama_Pembuat 
                                  FROM SuratTugas st
-                                 JOIN User u ON st.ID_user = u.Id_user COLLATE utf8mb4_general_ci /* FIX COLLISION */
+                                 JOIN User u ON st.ID_user = u.Id_user COLLATE utf8mb4_general_ci
                                  WHERE st.ID_KotakAmal = ? AND st.Status_Tugas = 'Aktif'"; 
                 $stmt_check_st = $conn->prepare($sql_check_st);
                 $stmt_check_st->bind_param("s", $row['ID_KotakAmal']);
@@ -486,70 +458,28 @@ $result_history = $stmt_history->get_result();
 </table>
 </div>
 
-<h2 style="margin-top: 40px;">Riwayat 10 Pengambilan Terakhir</h2>
-<div class="table-container">
-<table class="responsive-table">
-    <thead>
-        <tr>
-            <th>ID Kwitansi</th>
-            <th>Nama Toko</th>
-            <th>Jumlah Uang</th>
-            <th>Tanggal Ambil</th>
-            <th>Petugas</th>
-            <th>Aksi</th>
-        </tr>
-    </thead>
-    <tbody>
-        <?php if ($result_history->num_rows > 0) { ?>
-            <?php while ($row_hist = $result_history->fetch_assoc()) { ?>
-                <tr>
-                    <td data-label="ID Kwitansi"><?php echo $row_hist['ID_Kwitansi_KA']; ?></td>
-                    <td data-label="Nama Toko"><?php echo $row_hist['Nama_Toko']; ?></td>
-                    <td data-label="Jumlah Uang">Rp <?php echo number_format($row_hist['JmlUang']); ?></td>
-                    <td data-label="Tanggal Ambil"><?php echo $row_hist['Tgl_Ambil']; ?></td>
-                    <td data-label="Petugas"><?php echo $row_hist['Nama_User']; ?></td>
-                    <td data-label="Aksi">
-                        <a href="edit_dana_kotak_amal.php?id=<?php echo $row_hist['ID_Kwitansi_KA']; ?>" class="btn btn-primary btn-action-icon" style="background-color: #6B7280;" title="Edit"><i class="fas fa-edit"></i></a>
-                        <a href="hapus_dana_kotak_amal.php?id=<?php echo $row_hist['ID_Kwitansi_KA']; ?>" class="btn btn-danger btn-action-icon" title="Hapus" onclick="return confirm('Apakah Anda yakin ingin menghapus data pengambilan ini?');"><i class="fas fa-trash"></i></a>
-                    </td>
-                </tr>
-            <?php } ?>
-        <?php } else { ?>
-            <tr>
-                <td colspan="6" class="no-data">Belum ada riwayat pengambilan dana kotak amal yang tercatat.</td>
-            </tr>
-        <?php } ?>
-    </tbody>
-</table>
-</div>
-
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const monthSelect = document.getElementById('filter_month');
         const searchInput = document.getElementById('search_input');
         const filterForm = document.getElementById('filter-form');
         
-        // Cek apakah halaman dimuat karena filter bulan sudah aktif
         const initialMonth = monthSelect.value;
         if (initialMonth !== "" && searchInput.value === "") {
-             // Jika filter bulan aktif tapi search input kosong, isi search input dengan nama bulan
              const selectedText = monthSelect.options[monthSelect.selectedIndex].text;
              searchInput.value = selectedText;
         }
 
         monthSelect.addEventListener('change', function() {
-            const selectedValue = this.value; // '01', '02', ''
-            const selectedText = this.options[this.selectedIndex].text; // 'Januari', 'Semua Bulan'
+            const selectedValue = this.value;
+            const selectedText = this.options[this.selectedIndex].text;
             
             if (selectedValue !== "") {
-                // Jika bulan dipilih, isi input dengan nama bulan
                 searchInput.value = selectedText;
             } else {
-                // Jika "Semua Bulan" dipilih, bersihkan input pencarian
                 searchInput.value = '';
             }
             
-            // Otomatis submit form
             filterForm.submit();
         });
     });
@@ -557,7 +487,6 @@ $result_history = $stmt_history->get_result();
 
 <?php
 $stmt->close(); 
-$stmt_history->close(); 
 include '../includes/footer.php';
 $conn->close();
 ?>

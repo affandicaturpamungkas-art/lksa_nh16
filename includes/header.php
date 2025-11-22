@@ -1,4 +1,5 @@
 <?php
+// File: includes/header.php (Modified)
 $base_url = "http://" . $_SERVER['HTTP_HOST'] . "/lksa_nh/";
 
 $current_page = basename($_SERVER['PHP_SELF']);
@@ -14,44 +15,41 @@ $donatur_active = ($current_page == 'donatur.php' || $current_page == 'tambah_do
 $sumbangan_active = ($current_page == 'sumbangan.php' || $current_page == 'tambah_sumbangan.php' || $current_page == 'detail_sumbangan.php') ? 'active' : '';
 $verifikasi_active = ($current_page == 'verifikasi-donasi.php' || $current_page == 'edit_sumbangan.php' || $current_page == 'wa-blast-form.php') ? 'active' : '';
 $kotak_amal_active = ($current_page == 'kotak-amal.php' || $current_page == 'tambah_kotak_amal.php' || $current_page == 'edit_kotak_amal.php') ? 'active' : '';
-$dana_kotak_amal_active = ($current_page == 'dana-kotak-amal.php' || $current_page == 'edit_dana_kotak_amal.php') ? 'active' : '';
-$laporan_active = ($current_page == 'laporan.php' || $current_page == 'tambah_laporan.php' || $current_page == 'detail_laporan.php') ? 'active' : ''; // Tambahkan Laporan
-
-// NEW: Tambahkan variabel active untuk halaman menu export
+$dana_kotak_amal_active = ($current_page == 'dana-kotak-amal.php' || $current_page == 'edit_dana_kotak_amal.php' || $current_page == 'catat_pengambilan_ka.php' || $current_page == 'detail_surat_tugas.php') ? 'active' : '';
+// --- NEW ACTIVE VARIABLE ---
+$riwayat_ka_active = ($current_page == 'riwayat_dana_kotak_amal.php') ? 'active' : '';
+// --- END NEW ACTIVE VARIABLE ---
+$laporan_active = ($current_page == 'laporan.php' || $current_page == 'tambah_laporan.php' || $current_page == 'detail_laporan.php') ? 'active' : ''; 
 $export_menu_active = ($current_page == 'export_data_menu.php') ? 'active' : '';
 
-// --- SIDEBAR LOGIC ---
+// --- SIDEBAR LOGIC (UNCHANGED, except for new variable usage) ---
 $show_sidebar = false;
 $sidebar_html = '';
 $is_internal_user = false;
 
 if (isset($_SESSION['loggedin']) && isset($_SESSION['id_user'])) {
 
-    // Check if $conn is defined (it is defined in all page/dashboard files before header.php is included)
     if (isset($conn)) {
         $id_user = $_SESSION['id_user'];
         $user_info_sql = "SELECT Nama_User, Foto, Jabatan FROM User WHERE Id_user = '$id_user'";
-        $user_info = $conn->query($user_info_sql)->fetch_assoc();
+        // PERBAIKAN KRITIS: Pastikan query dieksekusi dengan aman sebelum fetch_assoc
+        $user_info_result = $conn->query($user_info_sql);
+        $user_info = $user_info_result ? $user_info_result->fetch_assoc() : null;
         $nama_user = $user_info['Nama_User'] ?? 'Pengguna';
         $foto_user = $user_info['Foto'] ?? '';
         $jabatan = $user_info['Jabatan'] ?? '';
         $is_internal_user = true;
         $foto_path = $foto_user ? $base_url . 'assets/img/' . $foto_user : $base_url . 'assets/img/yayasan.png';
 
-        // $sidebar_stats di-set di setiap file dashboard/manajemen. Dihapus dari tampilan.
         $sidebar_stats = $sidebar_stats ?? '';
 
-        // Tampilkan sidebar di semua halaman utama (dashboard dan menu manajemen)
-        // PERBAIKAN: Sertakan 'index.php' secara eksplisit
-        if ($current_page == 'index.php' || $current_dir == 'dashboards' || in_array($current_page, ['lksa.php', 'users.php', 'donatur.php', 'sumbangan.php', 'kotak-amal.php', 'verifikasi-donasi.php', 'dana-kotak-amal.php', 'tambah_pimpinan.php', 'tambah_pengguna.php', 'tambah_donatur.php', 'tambah_kotak_amal.php', 'tambah_sumbangan.php', 'laporan.php', 'tambah_laporan.php', 'edit_pengguna.php', 'edit_donatur.php', 'edit_sumbangan.php', 'edit_kotak_amal.php', 'edit_lksa.php', 'edit_dana_kotak_amal.php', 'detail_sumbangan.php', 'detail_laporan.php', 'export_data_menu.php'])) {
-            // Tambahkan pengecualian agar halaman dashboard_donatur.php dll tidak memakai layout ini
+        if ($current_page == 'index.php' || $current_dir == 'dashboards' || in_array($current_page, ['lksa.php', 'users.php', 'donatur.php', 'sumbangan.php', 'kotak-amal.php', 'verifikasi-donasi.php', 'dana-kotak-amal.php', 'tambah_pimpinan.php', 'tambah_pengguna.php', 'tambah_donatur.php', 'tambah_kotak_amal.php', 'tambah_sumbangan.php', 'laporan.php', 'tambah_laporan.php', 'edit_pengguna.php', 'edit_donatur.php', 'edit_sumbangan.php', 'edit_kotak_amal.php', 'edit_lksa.php', 'edit_dana_kotak_amal.php', 'detail_sumbangan.php', 'detail_laporan.php', 'export_data_menu.php', 'riwayat_dana_kotak_amal.php'])) {
             if ($current_page != 'dashboard_donatur.php' && $current_page != 'dashboard_pemilik_kotak_amal.php') {
                 $show_sidebar = true;
             }
         }
 
         if ($show_sidebar) {
-            // Use output buffering to capture the sidebar HTML
             ob_start();
             ?>
             <div class="sidebar-wrapper">
@@ -68,16 +66,16 @@ if (isset($_SESSION['loggedin']) && isset($_SESSION['id_user'])) {
                         </a>
                 </div>
 
-                <?php if ($jabatan != 'Pimpinan') { // <-- PERUBAHAN DITAMBAHKAN DI SINI ?>
+                <?php if ($jabatan != 'Pimpinan') { ?>
                 <a href="<?php echo $base_url; ?>pages/tambah_laporan.php" class="btn btn-warning"
                     style="margin-top: 15px; margin-bottom: 15px; background-color: #F97316; color: white; width: 100%; box-sizing: border-box;">
                     <i class="fas fa-bullhorn"></i> Lapor ke Atasan
                 </a>
-                <?php } // <-- PERUBAHAN DITAMBAHKAN DI SINI ?>
+                <?php } ?>
 
                 <hr>
                 
-                <h2>Menu Navigasi</h2>
+                <?php echo $sidebar_stats; ?> <h2>Menu Navigasi</h2>
                 
                 <div class="sidebar-nav-group">
                     <a href="<?php echo $base_url; ?>index.php" class="sidebar-nav-item <?php echo $dashboard_active; ?>">
@@ -123,9 +121,12 @@ if (isset($_SESSION['loggedin']) && isset($_SESSION['id_user'])) {
                             <i class="fas fa-box"></i> Manajemen Kotak Amal
                         </a>
                         <a href="<?php echo $base_url; ?>pages/dana-kotak-amal.php" class="sidebar-nav-item <?php echo $dana_kotak_amal_active; ?>">
-                            <i class="fas fa-coins"></i> Pengambilan Kotak Amal
+                            <i class="fas fa-coins"></i> Pengambilan Dana (Tugas)
                         </a>
-                    </div>
+                        <a href="<?php echo $base_url; ?>pages/riwayat_dana_kotak_amal.php" class="sidebar-nav-item <?php echo $riwayat_ka_active; ?>">
+                            <i class="fas fa-history"></i> Riwayat Pengambilan
+                        </a>
+                        </div>
                 <?php } ?>
                 
                 <?php if ($_SESSION['jabatan'] == 'Pimpinan' || $_SESSION['jabatan'] == 'Kepala LKSA') { ?>
@@ -166,6 +167,7 @@ if (isset($_SESSION['loggedin']) && isset($_SESSION['id_user'])) {
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        /* ... (CSS DARI HEADER.PHP SEBELUMNYA) ... */
         :root {
             --primary-color: #1F2937; /* Dark Navy/Slate (Base/Dark) */
             --secondary-color: #06B6D4; /* Aqua/Cyan (Accent/Highlight) */
